@@ -28,7 +28,7 @@ try {
         foreach ($documents as $document) {
             echo "<tr>";
             echo "<td>" . htmlspecialchars($document['document_id']) . "</td>";
-            echo "<td>" . htmlspecialchars($document['document_title']) . "</td>";
+            echo "<td><a href='view-document.php?id=" . htmlspecialchars($document['document_id']) . "'>" . htmlspecialchars($document['document_title']) . "</a></td>";
             echo "<td><img src='" . htmlspecialchars($document['logo']) . "' alt='Logo' style='width:100px; height:auto;'></td>";
             echo "</tr>";
         }
