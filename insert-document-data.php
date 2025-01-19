@@ -1,3 +1,4 @@
+<p><a href="index.php">Back</a></p>
 <?php
 // Start the session and include necessary files if needed
 session_start();

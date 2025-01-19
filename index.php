@@ -10,6 +10,7 @@
 <h1>Welcome to PDF Upload Application</h1>
 <p><a href="insert-document-data.php">Insert Document Data To DATABASE</a></p>
 <p><a href="upload_image.php">Upload Image</a></p>
+<p><a href="document-list.php">Document List</a></p>
 
 
 
