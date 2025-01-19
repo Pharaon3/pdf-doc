@@ -54,36 +54,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 }
                 $stmt = $pdo->prepare("INSERT INTO Section (document_id, section_name, content) VALUES (?, ?, ?)");
                 $stmt->execute([$document_id, $section_title, json_encode($contents)]);
-                error_log(json_encode($contents));
-                // $section_id = $pdo->lastInsertId();
-                // if (isset($_POST['content'][$index]) && is_array($_POST['content'][$index])) {
-                //     foreach ($_POST['content'][$index] as $content) {
-                //         if (isset($content['text']) && !empty($content['text'])) {
-                //             // Insert text content
-                //             $stmt = $pdo->prepare("INSERT INTO TextContent (section_id, text_detail) VALUES (?, ?)");
-                //             $stmt->execute([$section_id, trim($content['text'])]);
-                //         } elseif (isset($content['image']) && !empty($content['image'])) {
-                //             // Handle image upload for each section
-                //             foreach ($content['image'] as $image) {
-                //                 if ($image['error'] == UPLOAD_ERR_OK) {
-                //                     move_uploaded_file($image["tmp_name"], "uploads/" . basename($image["name"]));
-                //                     $image_url = "uploads/" . basename($image["name"]);
-                //                     $stmt = $pdo->prepare("INSERT INTO ImageContent (section_id, image_url) VALUES (?, ?)");
-                //                     $stmt->execute([$section_id, $image_url]);
-                //                 }
-                //             }
-                //         } elseif (isset($content['table'])) {
-                //             // Here you can handle table content insertion if needed.
-                //             foreach ($content['table'] as $row) {
-                //                 foreach ($row as $cell_value) {
-                //                     // Store cell values in a suitable manner.
-                //                     //$stmt = $pdo->prepare("INSERT INTO TableContent (section_id, table_data) VALUES (?, ?)");
-                //                     //$stmt->execute([$section_id, json_encode($row)]);
-                //                 }
-                //             }
-                //         }
-                //     }
-                // }
             }
         }
     }
@@ -213,7 +183,7 @@ function addContent(sectionId, contentType) {
                     const td = document.createElement('td');
                     const cellInput = document.createElement('input');
                     cellInput.type = "text";
-                    cellInput.name = `content[${sectionId}][${contentCount}][table][${i}][${j}]`;
+                    cellInput.name = `content[${sectionId - 1}][${contentCount}][table][${i}][${j}]`;
                     td.appendChild(cellInput);
                     tr.appendChild(td);
                 }
