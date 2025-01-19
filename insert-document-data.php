@@ -41,40 +41,49 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         foreach ($_POST['section_title'] as $index => $section_title) {
             if (!empty($section_title)) {
                 // Insert section into Section table
-                $stmt = $pdo->prepare("INSERT INTO Section (document_id, section_name) VALUES (?, ?)");
-                $stmt->execute([$document_id, $section_title]);
-                $section_id = $pdo->lastInsertId();
-                error_log(print_r($_POST['content']));
-                error_log($index);
-                // Handle content types for each section
-                if (isset($_POST['content'][$index]) && is_array($_POST['content'][$index])) {
-                    foreach ($_POST['content'][$index] as $content) {
-                        if (isset($content['text']) && !empty($content['text'])) {
-                            // Insert text content
-                            $stmt = $pdo->prepare("INSERT INTO TextContent (section_id, text_detail) VALUES (?, ?)");
-                            $stmt->execute([$section_id, trim($content['text'])]);
-                        } elseif (isset($content['image']) && !empty($content['image'])) {
-                            // Handle image upload for each section
-                            foreach ($content['image'] as $image) {
-                                if ($image['error'] == UPLOAD_ERR_OK) {
-                                    move_uploaded_file($image["tmp_name"], "uploads/" . basename($image["name"]));
-                                    $image_url = "uploads/" . basename($image["name"]);
-                                    $stmt = $pdo->prepare("INSERT INTO ImageContent (section_id, image_url) VALUES (?, ?)");
-                                    $stmt->execute([$section_id, $image_url]);
-                                }
-                            }
-                        } elseif (isset($content['table'])) {
-                            // Here you can handle table content insertion if needed.
-                            foreach ($content['table'] as $row) {
-                                foreach ($row as $cell_value) {
-                                    // Store cell values in a suitable manner.
-                                    //$stmt = $pdo->prepare("INSERT INTO TableContent (section_id, table_data) VALUES (?, ?)");
-                                    //$stmt->execute([$section_id, json_encode($row)]);
-                                }
-                            }
+                $contents = $_POST['content'][$index];
+                foreach ($contents as $content_index => $content) {
+                    if (isset($content['image'])) {
+                        $image = $_FILES['image_' . $index . '_' . $content_index];
+                        if ($image['error'] == UPLOAD_ERR_OK) {
+                            move_uploaded_file($image["tmp_name"], "uploads/" . basename($image["name"]));
+                            $image_url = "uploads/" . basename($image["name"]);
+                            $contents[$content_index]['image'] = $image_url;
                         }
                     }
                 }
+                $stmt = $pdo->prepare("INSERT INTO Section (document_id, section_name, content) VALUES (?, ?, ?)");
+                $stmt->execute([$document_id, $section_title, json_encode($contents)]);
+                error_log(json_encode($contents));
+                // $section_id = $pdo->lastInsertId();
+                // if (isset($_POST['content'][$index]) && is_array($_POST['content'][$index])) {
+                //     foreach ($_POST['content'][$index] as $content) {
+                //         if (isset($content['text']) && !empty($content['text'])) {
+                //             // Insert text content
+                //             $stmt = $pdo->prepare("INSERT INTO TextContent (section_id, text_detail) VALUES (?, ?)");
+                //             $stmt->execute([$section_id, trim($content['text'])]);
+                //         } elseif (isset($content['image']) && !empty($content['image'])) {
+                //             // Handle image upload for each section
+                //             foreach ($content['image'] as $image) {
+                //                 if ($image['error'] == UPLOAD_ERR_OK) {
+                //                     move_uploaded_file($image["tmp_name"], "uploads/" . basename($image["name"]));
+                //                     $image_url = "uploads/" . basename($image["name"]);
+                //                     $stmt = $pdo->prepare("INSERT INTO ImageContent (section_id, image_url) VALUES (?, ?)");
+                //                     $stmt->execute([$section_id, $image_url]);
+                //                 }
+                //             }
+                //         } elseif (isset($content['table'])) {
+                //             // Here you can handle table content insertion if needed.
+                //             foreach ($content['table'] as $row) {
+                //                 foreach ($row as $cell_value) {
+                //                     // Store cell values in a suitable manner.
+                //                     //$stmt = $pdo->prepare("INSERT INTO TableContent (section_id, table_data) VALUES (?, ?)");
+                //                     //$stmt->execute([$section_id, json_encode($row)]);
+                //                 }
+                //             }
+                //         }
+                //     }
+                // }
             }
         }
     }
@@ -116,10 +125,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
 <script>
 let sectionCount = 0;
+let contentCount = 0;
 
 function addSection() {
     sectionCount++;
-    
+    contentCount = 0;
+
     const sectionDiv = document.createElement('div');
     sectionDiv.className = 'section';
     
@@ -167,7 +178,7 @@ function addContent(sectionId, contentType) {
     
     if (contentType === 'text') {
         const input = document.createElement('textarea');
-        input.name = `content[${sectionId}][text][]`;
+        input.name = `content[${sectionId - 1}][${contentCount}][text]`;
         input.placeholder = "Enter text...";
         contentDiv.appendChild(input);
         
@@ -175,12 +186,20 @@ function addContent(sectionId, contentType) {
         const blankLine = document.createElement('div');
         blankLine.innerHTML = "<hr>";
         contentDiv.appendChild(blankLine);
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = `content[${sectionId - 1}][${contentCount}][blankline]`;
+        contentDiv.appendChild(input);
         
     } else if (contentType === 'image') {
         const imageInput = document.createElement('input');
         imageInput.type = "file";
-        imageInput.name = `content[${sectionId}][image][]`;
+        imageInput.name = `image_${sectionId - 1}_${contentCount}`;
         contentDiv.appendChild(imageInput);
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = `content[${sectionId - 1}][${contentCount}][image]`;
+        contentDiv.appendChild(input);
         
     } else if (contentType === 'table') {
         const rows = prompt("Enter number of rows:");
@@ -194,7 +213,7 @@ function addContent(sectionId, contentType) {
                     const td = document.createElement('td');
                     const cellInput = document.createElement('input');
                     cellInput.type = "text";
-                    cellInput.name = `content[${sectionId}][table][${i}][${j}]`;
+                    cellInput.name = `content[${sectionId}][${contentCount}][table][${i}][${j}]`;
                     td.appendChild(cellInput);
                     tr.appendChild(td);
                 }
@@ -203,6 +222,8 @@ function addContent(sectionId, contentType) {
             contentDiv.appendChild(tableDiv);
         }
     }
+
+    contentCount ++;
 }
 </script>
 
