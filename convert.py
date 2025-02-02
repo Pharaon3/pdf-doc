@@ -1,7 +1,7 @@
 import aspose.pdf as ap
 import os
 
-input_pdf = "updated_updated_structured1.pdf"
+input_pdf = "third.pdf"
 output_pdf = "output_pdfa.pdf"
 
 # Check if file exists

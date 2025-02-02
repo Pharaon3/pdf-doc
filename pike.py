@@ -9,11 +9,11 @@ from reportlab.pdfbase.ttfonts import TTFont
 import subprocess
 
 # File paths
-pdf_file = "structured.pdf"
-pdfa_file = "structured_pdfa.pdf"
+pdf_file = "first.pdf"
+pdfa_file = "pdfa.pdf"
 icc_profile = "sRGB.icc"  # Ensure you have this ICC profile
 img_path = "example.jpg"
-updated_pdf_file = "updated_structured1.pdf"
+updated_pdf_file = "second.pdf"
 
 # Register and embed fonts
 pdfmetrics.registerFont(TTFont("Helvetica", "Helvetica.ttf"))
@@ -127,7 +127,7 @@ def add_bookmarks_and_metadata(pdf_path):
     doc.pdf_markinfo = {"Marked": True}
 
     # Save as a new file
-    updated_pdf_path = "updated_" + pdf_path
+    updated_pdf_path = "third.pdf"
     doc.save(updated_pdf_path)
     doc.close()
 
@@ -163,6 +163,6 @@ def convert_to_pdfa(input_pdf, output_pdf, icc_profile):
     print(f"✅ Successfully converted {input_pdf} to PDF/A-1a: {output_pdf}")
 
 # Example usage
-convert_to_pdfa("updated_structured.pdf", "structured_pdfa.pdf", "sRGB.icc")
+convert_to_pdfa("third.pdf", pdfa_file, "sRGB.icc")
 
 print("🚀 PDF/A-1a creation complete!")
