@@ -6,7 +6,10 @@
         "thujohn/pdf": "*",
         "ezyang/htmlpurifier": "*",
         "guzzlehttp/guzzle": "*",
-        "mpdf/mpdf": "^8.2"
+        "mpdf/mpdf": "^8.2",
+        "tecnickcom/tcpdf": "^6.8",
+        "setasign/fpdi": "^2.6",
+        "fpdf/fpdf": "^1.86"
     },
     "config": {
         "allow-plugins": {
