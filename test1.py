@@ -41,6 +41,7 @@ def wrap_text(text, max_width, font_size):
 
     return lines
 
+
 def get_image_dimensions(image_path, max_width):
     with Image.open(image_path) as img:
         width, height = img.size
@@ -50,7 +51,6 @@ def get_image_dimensions(image_path, max_width):
 def generate_pdf(filename, document_id):
     document, sections = fetch_data_from_db(document_id)
     doc = fitz.open()
-    page = doc.new_page(width=595, height=842)  # A4 size in points (595x842)
     y_position = 50
     max_y = 780  # Leave space for footer/margins
     line_height = 15  # Default line spacing
@@ -58,10 +58,15 @@ def generate_pdf(filename, document_id):
     text_width = 495  # Allow some margins
     image_max_width = 495
 
+    bookmarks = []  # To store bookmarks for sections
+    page = None  # Define the variable in the enclosing scope
+    y_position = None  # Define the variable in the enclosing scope
     def add_new_page():
         nonlocal page, y_position
-        page = doc.new_page(width=595, height=842)
+        page = doc.new_page(width=595, height=842)  # A4 size in points (595x842)
         y_position = 50
+
+    add_new_page()
 
     if document:
         if document["logo"]:
@@ -99,6 +104,7 @@ def generate_pdf(filename, document_id):
         section_name = section["section_name"]
         content = json.loads(section["content"])
         page.insert_text((50, y_position), section_name, fontsize=14)
+        bookmarks.append((1, section_name, page.number + 1))  # Add bookmark (level 1)
         y_position += 20
 
         for item in content:
@@ -146,11 +152,45 @@ def generate_pdf(filename, document_id):
     doc.save(filename)
     doc.close()
     print(f"PDF '{filename}' generated successfully.")
+    return bookmarks
 
 
-generate_pdf("output.pdf", document_id=14)
+def add_bookmarks_and_metadata(pdf_path, bookmarks):
+    doc = fitz.open(pdf_path)
 
-doc = ap.Document("output.pdf")
+    # Add metadata
+    doc.set_metadata({
+        "title": "PDF/A-1a Document",
+        "author": "John Doe",
+        "subject": "Example of PDF/A-1a Compliance",
+        "keywords": "PDF/A, Compliance, Python",
+    })
+
+    # Add bookmarks (Table of Contents)
+    toc = doc.get_toc()  # Get current Table of Contents (TOC)
+    for bookmark in bookmarks:
+        toc.append(bookmark)  # [Level, Title, Page number]
+    doc.set_toc(toc)  # Update TOC
+
+    # Add MarkInfo dictionary
+    doc.pdf_markinfo = {"Marked": True}
+
+    # Save as a new file
+    updated_pdf_path = "output_with_bookmarks.pdf"
+    doc.save(updated_pdf_path)
+    doc.close()
+
+    print(f"Bookmarks & metadata added. Saved as {updated_pdf_path}")
+    return updated_pdf_path
+
+
+# Generate the PDF and add bookmarks
+pdf_filename = "output.pdf"
+document_id = 14
+bookmarks = generate_pdf(pdf_filename, document_id)
+add_bookmarks_and_metadata(pdf_filename, bookmarks)
+
+doc = ap.Document("output_with_bookmarks.pdf")
 
 # Ensure the document is not empty
 if doc is None:
