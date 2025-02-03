@@ -97,7 +97,6 @@ def generate_pdf(filename, document_id):
     for index, section in enumerate(sections, start=1):
         if y_position + line_height > max_y:
             add_new_page()
-
         section_name = f"{index}. {section['section_name']}"
         page.insert_text((50, y_position), section_name, fontsize=14)
         link_rects.append(fitz.Rect(50, y_position - 12, 495, y_position + 2))
