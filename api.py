@@ -1,3 +1,4 @@
+from flask import Flask, send_file, jsonify
 import fitz  # PyMuPDF
 import json
 import mysql.connector
@@ -5,6 +6,7 @@ from PIL import Image
 import aspose.pdf as ap
 import os
 
+app = Flask(__name__)
 
 def fetch_data_from_db(document_id):
     conn = mysql.connector.connect(
@@ -178,31 +180,28 @@ def add_bookmarks_and_metadata(pdf_path, bookmarks):
     print(f"Bookmarks & metadata added. Saved as {updated_pdf_path}")
     return updated_pdf_path
 
-# Generate the PDF and add bookmarks
-pdf_filename = "output.pdf"
-document_id = 14
-bookmarks = generate_pdf(pdf_filename, document_id)
-updated_pdf_path = add_bookmarks_and_metadata(pdf_filename, bookmarks)
+@app.route('/generate_pdf/<int:document_id>', methods=['GET'])
+def generate_pdf_api(document_id):
+    pdf_filename = f"output_{document_id}.pdf"
+    
+    try:
+        bookmarks = generate_pdf(pdf_filename, document_id)
+        updated_pdf_path = add_bookmarks_and_metadata(pdf_filename, bookmarks)
 
-# Convert to PDF/A-1a
-doc = ap.Document(updated_pdf_path)
+        # Convert to PDF/A-1a
+        doc = ap.Document(updated_pdf_path)
+        options = ap.PdfFormatConversionOptions(ap.PdfFormat.PDF_A_1A)
 
-# Ensure the document is not empty
-if doc is None:
-    print("Error: Failed to load the PDF document.")
-    exit()
+        if doc.convert(options):
+            final_pdf_path = f"{pdf_filename.split('.')[0]}.pdf"
+            doc.save(final_pdf_path)
+            os.remove(updated_pdf_path)
+            response = send_file(final_pdf_path, as_attachment=True)
+            return response
+        else:
+            return jsonify({"error": "PDF/A conversion failed."}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-# Convert to PDF/A-1a
-options = ap.PdfFormatConversionOptions(ap.PdfFormat.PDF_A_1A)
-
-# Try conversion
-if doc.convert(options):
-    final_pdf_path = title_text1 + ".pdf"
-    doc.save(final_pdf_path)
-    print(f"PDF successfully converted to PDF/A-1a: {final_pdf_path}")
-
-    # Remove intermediate files
-    os.remove(pdf_filename)
-    os.remove(updated_pdf_path)
-else:
-    print("Error: PDF/A conversion failed.")
+if __name__ == '__main__':
+    app.run(debug=True)
