@@ -61,6 +61,8 @@ def generate_pdf(filename, document_id):
 
     bookmarks = []  # To store bookmarks for sections
     page = None  # Define the variable in the enclosing scope
+    link_rects = []
+    page_numbers = []
 
     def add_new_page():
         nonlocal page, y_position
@@ -98,6 +100,7 @@ def generate_pdf(filename, document_id):
 
         section_name = f"{index}. {section['section_name']}"
         page.insert_text((50, y_position), section_name, fontsize=14)
+        link_rects.append(fitz.Rect(50, y_position - 12, 495, y_position + 2))
         y_position += 50
 
     for section in sections:
@@ -108,6 +111,7 @@ def generate_pdf(filename, document_id):
         content = json.loads(section["content"])
         page.insert_text((50, y_position), section_name, fontsize=14)
         bookmarks.append((1, section_name, page.number + 1))  # Add bookmark (level 1)
+        page_numbers.append([page.number, y_position])
         y_position += 20
 
         for item in content:
@@ -146,6 +150,13 @@ def generate_pdf(filename, document_id):
                             page.draw_rect(rect, color=(0, 0, 0), width=1)
 
                     y_position += table_height + 10  # Move below the table
+    print(link_rects)
+    print(page_numbers)
+    for index, section in enumerate(sections):
+        print(index)
+        link_rect = link_rects[index]
+        page_num, pos_y = page_numbers[index]
+        doc[0].insert_link({"kind": fitz.LINK_GOTO, "from": link_rect, "page": page_num, "to": fitz.Point(50, pos_y)})
 
     doc.save(filename)
     doc.close()
@@ -180,21 +191,42 @@ def add_bookmarks_and_metadata(pdf_path, bookmarks):
     print(f"Bookmarks & metadata added. Saved as {updated_pdf_path}")
     return updated_pdf_path
 
+def remove_text(input_pdf, output_pdf, search_text):
+    # Open the PDF
+    doc = fitz.open(input_pdf)
+    
+    # Iterate through each page
+    for page in doc:
+        # Search for the text
+        text_instances = page.search_for(search_text)
+        
+        # Apply redaction to found text
+        for inst in text_instances:
+            rect = fitz.Rect(inst)
+            page.add_redact_annot(rect, fill=(1, 1, 1))  # White background
+        
+        # Execute the redaction
+        page.apply_redactions()
+    
+    # Save the modified PDF
+    doc.save(output_pdf)
+    doc.close()
+
 @app.route('/generate_pdf/<int:document_id>', methods=['GET'])
 def generate_pdf_api(document_id):
-    pdf_filename = f"output_{document_id}.pdf"
-    
+    temp_pdf_name = "out.pdf"
     try:
-        bookmarks = generate_pdf(pdf_filename, document_id)
-        updated_pdf_path = add_bookmarks_and_metadata(pdf_filename, bookmarks)
-
+        bookmarks = generate_pdf(temp_pdf_name, document_id)
+        updated_pdf_path = add_bookmarks_and_metadata(temp_pdf_name, bookmarks)
         # Convert to PDF/A-1a
         doc = ap.Document(updated_pdf_path)
         options = ap.PdfFormatConversionOptions(ap.PdfFormat.PDF_A_1A)
 
         if doc.convert(options):
-            final_pdf_path = f"{pdf_filename.split('.')[0]}.pdf"
-            doc.save(final_pdf_path)
+            final_pdf_path = f"{title_text1}.pdf"
+            doc.save(temp_pdf_name)
+            remove_text(temp_pdf_name, final_pdf_path, "Evaluation Only. Created with Aspose.PDF. Copyright 2002-2024 Aspose Pty Ltd.")
+            os.remove(temp_pdf_name)
             os.remove(updated_pdf_path)
             response = send_file(final_pdf_path, as_attachment=True)
             return response
