@@ -7,6 +7,7 @@ from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 import subprocess
+import aspose.pdf as ap
 
 # File paths
 pdf_file = "first.pdf"
@@ -14,6 +15,8 @@ pdfa_file = "pdfa.pdf"
 icc_profile = "sRGB.icc"  # Ensure you have this ICC profile
 img_path = "example.jpg"
 updated_pdf_file = "second.pdf"
+third_pdf = "third.pdf"
+output_pdf = "output_pdfa.pdf"
 
 # Register and embed fonts
 pdfmetrics.registerFont(TTFont("Helvetica", "Helvetica.ttf"))
@@ -166,3 +169,25 @@ def convert_to_pdfa(input_pdf, output_pdf, icc_profile):
 convert_to_pdfa("third.pdf", pdfa_file, "sRGB.icc")
 
 print("🚀 PDF/A-1a creation complete!")
+
+if not os.path.exists(third_pdf):
+    print(f"Error: The file '{third_pdf}' was not found.")
+    exit()
+
+# Load the document
+doc = ap.Document(third_pdf)
+
+# Ensure the document is not empty
+if doc is None:
+    print("Error: Failed to load the PDF document.")
+    exit()
+
+# Convert to PDF/A-1a
+options = ap.PdfFormatConversionOptions(ap.PdfFormat.PDF_A_1A)
+
+# Try conversion
+if doc.convert(options):
+    doc.save(output_pdf)
+    print(f"PDF successfully converted to PDF/A-1a: {output_pdf}")
+else:
+    print("Error: PDF/A conversion failed.")

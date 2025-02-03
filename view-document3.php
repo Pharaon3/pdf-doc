@@ -35,7 +35,100 @@ try {
 
 // Check if the user requested a PDF
 if (isset($_GET['pdf']) && $_GET['pdf'] == 'true') {
-    
+    // Build HTML content with bookmarks
+    $htmlContent = '<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>' . htmlspecialchars($document_title) . '</title>
+        <style>
+            body { font-family: Tahoma, sans-serif; margin: 20px; }
+            h1 { text-align: center; }
+            .section { margin-top: 20px; }
+            .section h2 { margin-bottom: 10px; }
+            .blankline { height: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            table, th, td { border: 1px solid black; text-align: center; padding: 5px; }
+            img { display: block; margin: 10px auto; max-width: 100%; }
+            a { color: black; text-decoration: auto; }
+        </style>
+    </head>
+    <body>';
+    $imagePath = realpath($document_logo); // Converts to absolute path
+    if ($imagePath && file_exists($imagePath)) {
+        $imageBase64 = base64_encode(file_get_contents($imagePath));
+        $htmlContent .= '<img src="data:image/jpeg;base64,' . $imageBase64 . '" alt="Logo" width="50px;">';
+    } else {
+        $htmlContent .= '<p>Image not found: ' . htmlspecialchars($cont) . '</p>';
+    }
+    $htmlContent .= '<h1>' . htmlspecialchars($document_title) . '</h1>
+    <div class="sections">';
+    // Loop through sections and add named anchors for bookmarks
+    foreach ($sections as $key => $section) {
+        $sectionName = htmlspecialchars($section['section_name']);
+        $htmlContent .= '<div>';
+        $htmlContent .= '<a href="#bookmark-' . ($key + 1) . '">';
+        $htmlContent .= '<h2>' . ($key + 1) . '. ' . $sectionName . '</h2></a></div>';
+    }
+    foreach ($sections as $key => $section) {
+        $sectionName = htmlspecialchars($section['section_name']);
+        $htmlContent .= '<div class="section" id="bookmark-' . ($key + 1) . '">';
+        $htmlContent .= '<h2>' . $sectionName . '</h2>';
+        
+        // Parse and add content
+        $contents = json_decode($section['content'], true);
+        foreach ($contents as $content) {
+            foreach ($content as $key => $cont) {
+                if ($key === 'text') {
+                    $htmlContent .= '<p>' . htmlspecialchars($cont) . '</p>';
+                } elseif ($key === 'blankline') {
+                    $htmlContent .= '<div class="blankline"></div>';
+                } elseif ($key === 'image') {
+                    $imagePath = realpath($cont); // Converts to absolute path
+                    if ($imagePath && file_exists($imagePath)) {
+                        $imageBase64 = base64_encode(file_get_contents($imagePath));
+                        $htmlContent .= '<img src="data:image/jpeg;base64,' . $imageBase64 . '" alt="Image">';
+                    } else {
+                        $htmlContent .= '<p>Image not found: ' . htmlspecialchars($cont) . '</p>';
+                    }
+                } elseif ($key === 'table') {
+                    $htmlContent .= '<table>';
+                    foreach ($cont as $row) {
+                        $htmlContent .= '<tr>';
+                        foreach ($row as $column) {
+                            $htmlContent .= '<td>' . htmlspecialchars($column) . '</td>';
+                        }
+                        $htmlContent .= '</tr>';
+                    }
+                    $htmlContent .= '</table>';
+                }
+            }
+        }
+
+        $htmlContent .= '</div>';
+    }
+
+    $htmlContent .= '
+        </div>
+    </body>
+    </html>';
+
+    // Generate the PDF using Dompdf
+    $options = new Options();
+    $options->set('isHtml5ParserEnabled', true);
+    $options->set('isRemoteEnabled', true);
+    $options->set('isFontSubsettingEnabled', true);
+    $options->set('defaultFont', 'Tahoma');
+
+    $dompdf = new Dompdf($options);
+    $dompdf->loadHtml($htmlContent);
+    $dompdf->setPaper('A4', 'portrait');
+    $dompdf->render();
+
+    // Save or stream the PDF
+    $pdfFilePath = './docs/' . $document_title . '.pdf';
+    file_put_contents($pdfFilePath, $dompdf->output());
+    header('Location: ' . $pdfFilePath);
     exit;
 }
 ?>
