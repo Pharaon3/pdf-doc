@@ -73,6 +73,7 @@ if (isset($_GET['pdf']) && $_GET['pdf'] == 'true') {
     foreach ($sections as $key => $section) {
         $sectionName = htmlspecialchars($section['section_name']);
         $htmlContent .= '<div class="section" id="bookmark-' . ($key + 1) . '">';
+        $htmlContent .= '<h2 font-size="18" style="color: white">_BM_' . substr($sectionName, 0, 30) . '</h2>';
         $htmlContent .= '<h2>' . $sectionName . '</h2>';
         
         // Parse and add content
@@ -126,9 +127,11 @@ if (isset($_GET['pdf']) && $_GET['pdf'] == 'true') {
     $dompdf->render();
 
     // Save or stream the PDF
-    $pdfFilePath = './docs/' . $document_title . '.pdf';
+    $pdfFilePath = './docs/temp.pdf';
     file_put_contents($pdfFilePath, $dompdf->output());
-    header('Location: ' . $pdfFilePath);
+    $command = escapeshellcmd('python bookmark.py');
+    shell_exec($command);
+    header('Location: ./out.pdf');
     exit;
 }
 ?>
