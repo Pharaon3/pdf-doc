@@ -1,0 +1,2 @@
+aspose-pdf==25.1.0
+PyMuPDF==1.25.2

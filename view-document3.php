@@ -46,8 +46,6 @@ try {
     echo "Error: " . $e->getMessage();
 }
 
-// Check if the user requested a PDF
-// Build HTML content with bookmarks
 $htmlContent = '<!DOCTYPE html>
 <html>
 <head>
@@ -71,17 +69,10 @@ $htmlContent = '<!DOCTYPE html>
     </style>
 </head>
 <body>';
-// $imagePath = realpath($document_logo); // Converts to absolute path
-// if ($imagePath && file_exists($imagePath)) {
-//     $imageBase64 = base64_encode(file_get_contents($imagePath));
-//     $htmlContent .= '<img src="data:image/jpeg;base64,' . $imageBase64 . '" alt="Logo" width="50px;">';
-// } else {
-//     $htmlContent .= '<p>Image not found: ' . htmlspecialchars($cont) . '</p>';
-// }
-$htmlContent .= '<h1>' . htmlspecialchars($document_title) . '</h1>
-<h3>' . htmlspecialchars($document_description) . '</h3>
-<div class="sections">';
-// Loop through sections and add named anchors for bookmarks
+$htmlContent .= '<h1>' . htmlspecialchars($document_title) . '</h1>';
+if (strpos($document_description, "<")) '<h3>' . htmlspecialchars($document_description) . '</h3>';
+else $htmlContent .= $document_description;
+$htmlContent .= '<div class="sections">';
 foreach ($sections as $key => $section) {
     $sectionName = htmlspecialchars($section['section_title']);
     $sectionSubTitle = htmlspecialchars($section['sub_title']);
@@ -269,7 +260,7 @@ echo '<p><a href="document-list.php">Back</a></p>' . $htmlContent . '<p>Your PDF
     window.onload = function() {
         var link = document.createElement("a");
         link.href = "out.pdf";
-        link.download = "out.pdf";
+        link.download = "' . $document_id . '-' . preg_replace("/[\r\n]*/","", htmlspecialchars($document_title)) . '.pdf";
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);

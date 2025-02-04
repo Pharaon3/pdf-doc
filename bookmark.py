@@ -52,23 +52,31 @@ input_pdf = "./docs/temp.pdf"
 output_pdf = "output.pdf"
 add_tooltips_and_bookmarks(input_pdf, output_pdf)
 
-def remove_text(input_pdf, output_pdf, search_text):
+def remove_text(input_pdf, output_pdf, search_texts):
     # Open the PDF
     doc = fitz.open(input_pdf)
     
     # Iterate through each page
     for page in doc:
-        # Search for the text
-        text_instances = page.search_for(search_text)
+        page_width = page.rect.width  # Get the full width of the page
         
-        # Apply redaction to found text
-        for inst in text_instances:
-            rect = fitz.Rect(inst)
-            page.add_redact_annot(rect, fill=(1, 1, 1))  # White background
+        # Get text blocks from the page
+        blocks = page.get_text("dict")["blocks"]
         
+        # Loop through each block
+        for block in blocks:
+            if "lines" in block:
+                for line in block["lines"]:
+                    line_text = " ".join(span["text"] for span in line["spans"])  # Get full line text
+                    
+                    # Check if any search text is in the line
+                    if any(search_text in line_text for search_text in search_texts):
+                        x0, y0, x1, y1 = line["bbox"]  # Get the bounding box of the entire line
+                        full_width_rect = fitz.Rect(0, y0, page_width, y1)  # Expand to full width
+                        page.add_redact_annot(full_width_rect, fill=(1, 1, 1))  # White background
+
         # Execute the redaction
         page.apply_redactions()
-    
     # Save the modified PDF
     doc.save(output_pdf)
     doc.close()
@@ -79,7 +87,7 @@ temp_pdf_name = "temp.pdf"
 if doc.convert(options):
     final_pdf_path = "out.pdf"
     doc.save(temp_pdf_name)
-    remove_text(temp_pdf_name, final_pdf_path, "Evaluation Only. Created with Aspose.PDF. Copyright 2002-2024 Aspose Pty Ltd.")
+    remove_text(temp_pdf_name, final_pdf_path, ["Evaluation Only. Created with Aspose.PDF. Copyright 2002-2024 Aspose Pty Ltd.", "_BM_", "_SBM_"])
     os.remove(input_pdf)
     os.remove(temp_pdf_name)
     os.remove("output.pdf")
