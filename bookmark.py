@@ -31,7 +31,9 @@ def add_tooltips_and_bookmarks(pdf_path, output_path):
                             if "_BM_" in span["text"]:
                                 x, y = span["origin"]
                                 bookmarks.append([1, span["text"].replace("_BM_", ""), page_num + 1, {"kind": fitz.LINK_GOTO, "to": fitz.Point(x, y)}])
-
+                            if "_SBM_" in span["text"]:
+                                x, y = span["origin"]
+                                bookmarks.append([2, span["text"].replace("_SBM_", ""), page_num + 1, {"kind": fitz.LINK_GOTO, "to": fitz.Point(x, y)}])
     # Update TOC with bookmarks
     if bookmarks:
         toc = doc.get_toc()
