@@ -81,7 +81,11 @@ if (isset($_GET['pdf']) && $_GET['pdf'] == 'true') {
         foreach ($contents as $content) {
             foreach ($content as $key => $cont) {
                 if ($key === 'text') {
-                    $htmlContent .= '<p>' . htmlspecialchars($cont) . '</p>';
+                    if (strpos($cont, "<") !== false) {
+                        $htmlContent .= $cont;
+                    } else {
+                        $htmlContent .= '<p>' . htmlspecialchars($cont) . '</p>';
+                    }
                 } elseif ($key === 'blankline') {
                     $htmlContent .= '<div class="blankline"></div>';
                 } elseif ($key === 'image') {
@@ -129,9 +133,9 @@ if (isset($_GET['pdf']) && $_GET['pdf'] == 'true') {
     // Save or stream the PDF
     $pdfFilePath = './docs/temp.pdf';
     file_put_contents($pdfFilePath, $dompdf->output());
-    $command = escapeshellcmd('python bookmark.py');
+    $command = escapeshellcmd('python bookmarklist.py');
     shell_exec($command);
-    header('Location: ./out.pdf');
+    header('Location: ./out1.pdf');
     exit;
 }
 ?>
@@ -209,7 +213,11 @@ if (isset($_GET['pdf']) && $_GET['pdf'] == 'true') {
                 foreach ($contents as $content) {
                     foreach ($content as $key => $cont) {
                         if ($key == 'text') {
-                            echo "<p>" . $cont . "</p>";
+                            if (strpos($cont, "<") !== false) {
+                                echo(htmlspecialchars($cont));
+                            } else {
+                                echo('<p>' . htmlspecialchars($cont) . '</p>');
+                            }
                         } elseif ($key == 'blankline') {
                             echo("<p class='blankline'></p>");
                         } elseif ($key == 'image') {

@@ -9,6 +9,15 @@ $db_name = 'test-database';
 $db_user = 'root'; 
 $db_password = ''; 
 
+function convertListStyle($input) {
+    // Match lowercase letters followed by a period
+    $pattern = '/\b([a-z])\./';
+    // Replace with the same letter followed by a closing parenthesis
+    $replacement = '$1)';
+    // Perform the replacement
+    return preg_replace($pattern, $replacement, $input);
+}
+
 try {
     // Create a PDO instance
     $pdo = new PDO("mysql:host=$host;dbname=$db_name;charset=utf8", $db_user, $db_password);
@@ -43,17 +52,29 @@ if (isset($_GET['pdf']) && $_GET['pdf'] == 'true') {
         <title>' . htmlspecialchars($document_title) . '</title>
         <style>
             body { font-family: Tahoma, sans-serif; margin: 20px; }
+            h1 { text-align: center; }
             .section { margin-top: 20px; }
             .section h2 { margin-bottom: 10px; }
-            .blankline { height: 50px; padding: 10px; }
+            .blankline { height: 20px; }
             table { width: 100%; border-collapse: collapse; margin-top: 10px; }
             table, th, td { border: 1px solid black; text-align: center; padding: 5px; }
             img { display: block; margin: 10px auto; max-width: 100%; }
             a { color: black; text-decoration: auto; }
-            #document-title { font-size: 16px; font-weight: bold; text-align: center; display: flex; justify-content: center; }
-            .section-title { font-size: 14px; font-weight: bold; }
-            .section-container" { font-size: 14px; }
-            p { font-size: 14px; }
+        </style>
+        <style>
+            .custom-list {
+                list-style-type: lower-alpha; /* Remove default styling */
+                counter-reset: list-counter; /* Initialize counter */
+            }
+
+            .custom-list > li {
+                position: relative;
+            }
+
+            .custom-list > li::before {
+                content: counter(list-counter, lower-alpha) ") ";
+                left: -1.5em; /* Adjust spacing */
+            }
         </style>
     </head>
     <body>';
@@ -64,28 +85,32 @@ if (isset($_GET['pdf']) && $_GET['pdf'] == 'true') {
     } else {
         $htmlContent .= '<p>Image not found: ' . htmlspecialchars($cont) . '</p>';
     }
-    $htmlContent .= '<div id="document-title">' . htmlspecialchars($document_title) . '</div>
+    $htmlContent .= '<h1>' . htmlspecialchars($document_title) . '</h1>
     <div class="sections">';
-    $htmlContent .= '<div class="blankline"></div>';
     // Loop through sections and add named anchors for bookmarks
     foreach ($sections as $key => $section) {
         $sectionName = htmlspecialchars($section['section_name']);
-        $htmlContent .= '<div class="section-container">';
+        $htmlContent .= '<div>';
         $htmlContent .= '<a href="#bookmark-' . ($key + 1) . '">';
-        $htmlContent .= '<div class="section-title">' . ($key + 1) . '. ' . $sectionName . '</div></a></div>';
-        $htmlContent .= '<div class="blankline"></div>';
+        $htmlContent .= '<h2>' . ($key + 1) . '. ' . $sectionName . '</h2></a></div>';
     }
-    $htmlContent .= '<div class="blankline"></div>';
     foreach ($sections as $key => $section) {
         $sectionName = htmlspecialchars($section['section_name']);
-        $htmlContent .= '<div class="section-title" id="bookmark-' . ($key + 1) . '">' . $sectionName . '</div>';
+        $htmlContent .= '<div class="section" id="bookmark-' . ($key + 1) . '">';
+        $htmlContent .= '<h2 font-size="18" style="color: white">_BM_' . substr($sectionName, 0, 30) . '</h2>';
+        $htmlContent .= '<h2>' . $sectionName . '</h2>';
         
         // Parse and add content
         $contents = json_decode($section['content'], true);
         foreach ($contents as $content) {
             foreach ($content as $key => $cont) {
                 if ($key === 'text') {
-                    $htmlContent .= '<p>' . htmlspecialchars($cont) . '</p>';
+                    if (strpos($cont, "<") !== false) {
+                        $text = str_replace('<ol style="list-style-type: lower-alpha;">', '<ol class="custom-list">', $cont);
+                        $htmlContent .= str_replace('lower-alpha', 'lower-alpha) ', $text);
+                    } else {
+                        $htmlContent .= '<p>' . htmlspecialchars($cont) . '</p>';
+                    }
                 } elseif ($key === 'blankline') {
                     $htmlContent .= '<div class="blankline"></div>';
                 } elseif ($key === 'image') {
@@ -109,8 +134,8 @@ if (isset($_GET['pdf']) && $_GET['pdf'] == 'true') {
                 }
             }
         }
+
         $htmlContent .= '</div>';
-        $htmlContent .= '<div class="blankline"></div>';
     }
 
     $htmlContent .= '
@@ -122,6 +147,7 @@ if (isset($_GET['pdf']) && $_GET['pdf'] == 'true') {
     $options = new Options();
     $options->set('isHtml5ParserEnabled', true);
     $options->set('isRemoteEnabled', true);
+    $options->set('isFontSubsettingEnabled', true);
     $options->set('defaultFont', 'Tahoma');
 
     $dompdf = new Dompdf($options);
@@ -130,9 +156,11 @@ if (isset($_GET['pdf']) && $_GET['pdf'] == 'true') {
     $dompdf->render();
 
     // Save or stream the PDF
-    $pdfFilePath = './docs/' . $document_title . '.pdf';
+    $pdfFilePath = './docs/temp.pdf';
     file_put_contents($pdfFilePath, $dompdf->output());
-    header('Location: ' . $pdfFilePath);
+    $command = escapeshellcmd('python bookmark.py');
+    shell_exec($command);
+    header('Location: ./out.pdf');
     exit;
 }
 ?>
@@ -210,7 +238,11 @@ if (isset($_GET['pdf']) && $_GET['pdf'] == 'true') {
                 foreach ($contents as $content) {
                     foreach ($content as $key => $cont) {
                         if ($key == 'text') {
-                            echo "<p>" . $cont . "</p>";
+                            if (strpos($cont, "<") !== false) {
+                                echo(htmlspecialchars($cont));
+                            } else {
+                                echo('<p>' . htmlspecialchars($cont) . '</p>');
+                            }
                         } elseif ($key == 'blankline') {
                             echo("<p class='blankline'></p>");
                         } elseif ($key == 'image') {

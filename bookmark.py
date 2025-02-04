@@ -46,7 +46,7 @@ def add_tooltips_and_bookmarks(pdf_path, output_path):
     doc.close()
 
 # Usage Example
-input_pdf = "input.pdf"
+input_pdf = "./docs/temp.pdf"
 output_pdf = "output.pdf"
 add_tooltips_and_bookmarks(input_pdf, output_pdf)
 
@@ -78,5 +78,6 @@ if doc.convert(options):
     final_pdf_path = "out.pdf"
     doc.save(temp_pdf_name)
     remove_text(temp_pdf_name, final_pdf_path, "Evaluation Only. Created with Aspose.PDF. Copyright 2002-2024 Aspose Pty Ltd.")
+    os.remove(input_pdf)
     os.remove(temp_pdf_name)
     os.remove("output.pdf")
