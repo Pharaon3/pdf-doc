@@ -9,15 +9,6 @@ $db_name = 'test-database';
 $db_user = 'root'; 
 $db_password = ''; 
 
-function convertListStyle($input) {
-    // Match lowercase letters followed by a period
-    $pattern = '/\b([a-z])\./';
-    // Replace with the same letter followed by a closing parenthesis
-    $replacement = '$1)';
-    // Perform the replacement
-    return preg_replace($pattern, $replacement, $input);
-}
-
 try {
     // Create a PDO instance
     $pdo = new PDO("mysql:host=$host;dbname=$db_name;charset=utf8", $db_user, $db_password);
@@ -61,21 +52,6 @@ if (isset($_GET['pdf']) && $_GET['pdf'] == 'true') {
             img { display: block; margin: 10px auto; max-width: 100%; }
             a { color: black; text-decoration: auto; }
         </style>
-        <style>
-            .custom-list {
-                list-style-type: lower-alpha; /* Remove default styling */
-                counter-reset: list-counter; /* Initialize counter */
-            }
-
-            .custom-list > li {
-                position: relative;
-            }
-
-            .custom-list > li::before {
-                content: counter(list-counter, lower-alpha) ") ";
-                left: -1.5em; /* Adjust spacing */
-            }
-        </style>
     </head>
     <body>';
     $imagePath = realpath($document_logo); // Converts to absolute path
@@ -106,8 +82,7 @@ if (isset($_GET['pdf']) && $_GET['pdf'] == 'true') {
             foreach ($content as $key => $cont) {
                 if ($key === 'text') {
                     if (strpos($cont, "<") !== false) {
-                        $text = str_replace('<ol style="list-style-type: lower-alpha;">', '<ol class="custom-list">', $cont);
-                        $htmlContent .= str_replace('lower-alpha', 'lower-alpha) ', $text);
+                        $htmlContent .= $cont;
                     } else {
                         $htmlContent .= '<p>' . htmlspecialchars($cont) . '</p>';
                     }
@@ -158,9 +133,9 @@ if (isset($_GET['pdf']) && $_GET['pdf'] == 'true') {
     // Save or stream the PDF
     $pdfFilePath = './docs/temp.pdf';
     file_put_contents($pdfFilePath, $dompdf->output());
-    $command = escapeshellcmd('python bookmark.py');
+    $command = escapeshellcmd('python bookmarklist.py');
     shell_exec($command);
-    header('Location: ./out.pdf');
+    header('Location: ./out1.pdf');
     exit;
 }
 ?>
